@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PF Aerobatics — Formation Visualizer</title>
+    <link rel="stylesheet" href="/src/ui/controlPanel.css" />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="scene-canvas"></canvas>
+      <div id="loading-overlay">
+        <div id="loading-bar"><div id="loading-bar-fill"></div></div>
+        <div id="loading-label">Loading…</div>
+      </div>
+      <div id="control-panel"></div>
+      <div id="pointer-lock-hint">Click to look around</div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
