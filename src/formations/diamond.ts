@@ -58,7 +58,7 @@ const DIAMOND_TABLE: Record<number, readonly RowSpec[]> = {
     LEAD,
     WINGS,
     { depthBehind: DEPTH * 2, verticalDrop: VERT * 2, slots: [{ lateral: 0, role: 'slot' }] },
-    { depthBehind: DEPTH * 3.7, verticalDrop: VERT * 4, slots: [{ lateral: 0, role: 'tail' }] },
+    { depthBehind: DEPTH * 4, verticalDrop: VERT * 4, slots: [{ lateral: 0, role: 'tail' }] },
   ],
   6: [
     LEAD,

@@ -5,7 +5,7 @@ import { negateZeroSafe } from '../utils/math';
 const DEPTH_STEP = 16;
 // Small per-aircraft altitude step purely so each plane reads visually distinct rather than
 // appearing hidden directly behind the one ahead — matches how real trail formations fly stepped.
-const VERTICAL_STEP = 2.8;
+const VERTICAL_STEP = 3;
 
 export const generateTrail: FormationGenerator = ({ planeCount }) => {
   assertValidPlaneCount(planeCount);
