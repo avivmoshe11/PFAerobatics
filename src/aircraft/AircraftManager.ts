@@ -27,12 +27,21 @@ export interface AircraftManagerOptions {
 const MODEL_FORWARD_YAW_CORRECTION_RAD = Math.PI / 2;
 
 /**
+ * Slight nose-up angle of attack applied to every aircraft at rest, purely cosmetic (a level
+ * fuselage reads as "parked," not "flying"). Composed as the Euler z-component: since the yaw
+ * correction above is applied first (Euler 'XYZ' order), the model's local Z axis is already the
+ * horizontal wing axis by the time this pitch is applied, so it tilts the nose up regardless of
+ * yaw/echelon direction rather than rolling the model.
+ */
+const AOA_PITCH_RAD = (1 * Math.PI) / 180;
+
+/**
  * Rough estimate of the pilot seat position in the model's local space (forward and up from the
  * pivot; centered laterally, since a tandem two-seat trainer has both seats on the centerline).
  * This hasn't been verified against the real GLB's cockpit geometry — see README's "Adding the
  * L-39C model" section — so nudge it once you've seen how close it actually lands to the canopy.
  */
-const PILOT_LOCAL_OFFSET = new Vector3(6.7, 2.6, 0);
+const PILOT_LOCAL_OFFSET = new Vector3(6.7, 2.5, 0);
 
 /** Local-space position of the floating number label, above the canopy. */
 const NUMBER_LABEL_LOCAL_OFFSET = new Vector3(0, 4, 0);
@@ -214,7 +223,7 @@ export class AircraftManager implements Updatable {
     this.instances.forEach((instance, aircraftId) => {
       const offset = slots[this.slotIndexFor(formation, direction, aircraftId)]!.offset;
       instance.position.set(offset.x, offset.y, offset.z);
-      instance.rotation.set(0, MODEL_FORWARD_YAW_CORRECTION_RAD, 0);
+      instance.rotation.set(0, MODEL_FORWARD_YAW_CORRECTION_RAD, AOA_PITCH_RAD);
     });
   }
 }
