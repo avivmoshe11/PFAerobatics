@@ -7,10 +7,16 @@ import { canChangePlaneCount } from './formations/rules';
 import { ControlPanel } from './ui/ControlPanel';
 import type { ControlPanelState } from './ui/ControlPanel';
 
-const MODEL_URL = '/models/l39c.glb';
+const MODEL_URL = '/models/L39C2.glb';
 
-// Populate once squadron skin textures are added under public/skins/ — see README.
-const SKINS: Skin[] = [];
+const SKINS: Skin[] = [
+  { id: 'iaf-1', label: 'IAF 1', textureUrl: '/skins/L39C_DIFF_IAF-1.png' },
+  { id: 'iaf-2', label: 'IAF 2', textureUrl: '/skins/L39C_DIFF_IAF-2.png' },
+  { id: 'iaf-3', label: 'IAF 3', textureUrl: '/skins/L39C_DIFF_IAF-3.png' },
+  { id: 'iaf-4', label: 'IAF 4', textureUrl: '/skins/L39C_DIFF_IAF-4.png' },
+  { id: 'iaf-5', label: 'IAF 5', textureUrl: '/skins/L39C_DIFF_IAF-5.png' },
+  { id: 'iaf-6', label: 'IAF 6', textureUrl: '/skins/L39C_DIFF_IAF-6.png' },
+];
 
 const DEFAULT_PLANE_COUNT = 4;
 const DEFAULT_DURATION_SECONDS = 9;
@@ -47,7 +53,6 @@ async function main(): Promise<void> {
 
   let planeCount = DEFAULT_PLANE_COUNT;
   let transitionDurationSeconds = DEFAULT_DURATION_SECONDS;
-  let activeSkinId: string | null = SKINS[0]?.id ?? null;
 
   try {
     await aircraftLoader.load(MODEL_URL);
@@ -67,24 +72,7 @@ async function main(): Promise<void> {
   app.registerUpdatable(manager);
   manager.rebuild(planeCount);
 
-  const initialSkin = SKINS.find((skin) => skin.id === activeSkinId) ?? null;
-  if (initialSkin) await manager.applySkinToAll(initialSkin);
-
-  // Number keys hop the camera to a pilot seat: 1=lead, 2=right wing, 3=left wing, ... (see
-  // AircraftManager.pilotHotkeyOrder). Every seat but the lead's looks toward the lead's cockpit
-  // as of the moment of the hop, matching how a wingman actually watches their lead in formation;
-  // the lead just looks forward. Position keeps tracking the aircraft live afterward (see
-  // FirstPersonCameraRig.viewFromCockpit), so the camera follows it through a formation
-  // transition — but the look direction is only set once, not continuously re-aimed.
-  window.addEventListener('keydown', (event) => {
-    const digit = Number(event.key);
-    if (!Number.isInteger(digit) || digit < 1 || digit > planeCount) return;
-    const hotkeyOrder = manager.pilotHotkeyOrder();
-    const aircraftId = hotkeyOrder[digit - 1];
-    if (aircraftId === undefined) return;
-    const lookAt = digit === 1 ? undefined : manager.getPilotWorldPosition(hotkeyOrder[0]!);
-    app.cameraRig.viewFromCockpit(() => manager.getPilotWorldPosition(aircraftId), lookAt);
-  });
+  await manager.applySkins(SKINS);
 
   const panel = new ControlPanel(panelContainer, {
     onPlaneCountChange: (count) => {
@@ -96,12 +84,6 @@ async function main(): Promise<void> {
     onTransitionRequest: (target, direction) => {
       manager.transitionTo(target, direction);
     },
-    onSkinChange: (skinId) => {
-      activeSkinId = skinId;
-      const skin = SKINS.find((s) => s.id === skinId);
-      if (skin) void manager.applySkinToAll(skin).then(render);
-      render();
-    },
     onDurationChange: (seconds) => {
       transitionDurationSeconds = seconds;
       manager.setTransitionDuration(seconds);
@@ -109,6 +91,15 @@ async function main(): Promise<void> {
     },
     onResetView: () => {
       app.cameraRig.resetView();
+    },
+    // Menu open = cursor usable, look-around off. Menu closed = look-around back on. Covers every
+    // way the menu can open/close (M key, the close button, clicking the backdrop) from one place.
+    onOpenChange: (open) => {
+      if (open) {
+        if (app.cameraRig.isLocked) app.cameraRig.controls.unlock();
+      } else {
+        app.cameraRig.controls.lock();
+      }
     },
   });
 
@@ -118,12 +109,62 @@ async function main(): Promise<void> {
       echelonDirection: manager.direction,
       planeCount,
       transitioning: manager.isTransitioning,
-      skins: SKINS,
-      activeSkinId,
       transitionDurationSeconds,
     };
     panel.render(state);
   }
+
+  // M toggles the control panel modal. R resets the camera view. T returns to Diamond (a no-op,
+  // via manager.transitionTo's own guard, if already in Diamond or mid-transition). Number keys
+  // hop the camera to a pilot seat: 1=lead, 2=right wing, 3=left wing, ... (see
+  // AircraftManager.pilotHotkeyOrder). Every seat but the lead's looks toward the lead's cockpit
+  // as of the moment of the hop, matching how a wingman actually watches their lead in formation;
+  // the lead just looks forward. Position keeps tracking the aircraft live afterward (see
+  // FirstPersonCameraRig.viewFromCockpit), so the camera follows it through a formation
+  // transition — but the look direction is only set once, not continuously re-aimed.
+  //
+  // There's no more "click the canvas to look around" — browsers require a real user gesture
+  // before granting pointer lock, and a keypress counts just as well as a click does, so any key
+  // other than the menu/quick-action ones below implicitly engages it (when the menu is closed).
+  window.addEventListener('keydown', (event) => {
+    const key = event.key.toLowerCase();
+
+    if (key === 'escape') {
+      // Esc closes the menu if it's open, but — unlike every other way of closing it — never
+      // re-engages pointer lock; the browser already uses Esc to release it, so re-locking here
+      // would immediately fight that. Otherwise Esc does nothing on our end (the browser's own
+      // release-on-Esc behavior for pointer lock still happens independently of this).
+      if (panel.isOpen) panel.setOpen(false, false);
+      return;
+    }
+
+    if (key === 'm') {
+      panel.setOpen(!panel.isOpen);
+      return;
+    }
+
+    if (key === 'r') {
+      app.cameraRig.resetView();
+      return;
+    }
+
+    if (key === 't') {
+      manager.transitionTo('diamond', manager.direction);
+      return;
+    }
+
+    if (!panel.isOpen && !app.cameraRig.isLocked) {
+      app.cameraRig.controls.lock();
+    }
+
+    const digit = Number(event.key);
+    if (!Number.isInteger(digit) || digit < 1 || digit > planeCount) return;
+    const hotkeyOrder = manager.pilotHotkeyOrder();
+    const aircraftId = hotkeyOrder[digit - 1];
+    if (aircraftId === undefined) return;
+    const lookAt = digit === 1 ? undefined : manager.getPilotWorldPosition(hotkeyOrder[0]!);
+    app.cameraRig.viewFromCockpit(() => manager.getPilotWorldPosition(aircraftId), lookAt);
+  });
 
   render();
   app.start();

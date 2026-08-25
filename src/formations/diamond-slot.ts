@@ -17,9 +17,9 @@ const LEAD: RowSpec = { depthBehind: 0, verticalDrop: 0, slots: [{ lateral: 0, r
 
 // Base spacing units (scene units, roughly meters). Tuned by eye against the aircraft model,
 // not derived from a formula — real formation spacing is a matter of visual judgment.
-const LAT = 12.8;
-const DEPTH = 10.6;
-const VERT = 1.3;
+const LAT = 13;
+const DEPTH = 10.8;
+const VERT = 1.4;
 
 /**
  * Nudges tail-right a hair deeper than tail-left (6-ship diamond) so trail's depth-first ordering
@@ -43,7 +43,7 @@ const WINGS: RowSpec = {
  * squadrons, not the output of a closed-form formula, and a formula degenerates awkwardly at the
  * low-N edge cases (2, 3) — a table keeps every N an explicit, independently tunable, testable case.
  */
-const DIAMOND_TABLE: Record<number, readonly RowSpec[]> = {
+const DIAMOND_SLOT_TABLE: Record<number, readonly RowSpec[]> = {
   2: [
     LEAD,
     { depthBehind: DEPTH, verticalDrop: VERT, slots: [{ lateral: LAT, role: 'wing-right' }] },
@@ -66,14 +66,14 @@ const DIAMOND_TABLE: Record<number, readonly RowSpec[]> = {
     // Same depth/lateral as N=4's solo slot — going from 4 to 6 planes shouldn't relocate plane 4.
     { depthBehind: DEPTH * 2, verticalDrop: VERT * 2, slots: [{ lateral: 0, role: 'slot' }] },
     {
-      depthBehind: DEPTH * 2,
-      verticalDrop: VERT * 2,
-      slots: [{ lateral: -LAT * 2, role: 'tail-left' }],
+      depthBehind: DEPTH * 3,
+      verticalDrop: VERT * 3,
+      slots: [{ lateral: -LAT, role: 'tail-left' }],
     },
     {
-      depthBehind: DEPTH * 2 + TAIL_RIGHT_DEPTH_NUDGE,
-      verticalDrop: VERT * 2,
-      slots: [{ lateral: LAT * 2, role: 'tail-right' }],
+      depthBehind: DEPTH * 3 + TAIL_RIGHT_DEPTH_NUDGE,
+      verticalDrop: VERT * 3,
+      slots: [{ lateral: LAT, role: 'tail-right' }],
     },
   ],
 };
@@ -87,13 +87,13 @@ function layoutRows(rows: readonly RowSpec[]): Slot[] {
   );
 }
 
-export const generateDiamond: FormationGenerator = ({ planeCount }) => {
+export const generateDiamondSlot: FormationGenerator = ({ planeCount }) => {
   assertValidPlaneCount(planeCount);
-  const rows = DIAMOND_TABLE[planeCount];
+  const rows = DIAMOND_SLOT_TABLE[planeCount];
   if (!rows) {
     throw new RangeError(`No diamond layout defined for planeCount=${planeCount}`);
   }
   return layoutRows(rows);
 };
 
-export { DIAMOND_TABLE };
+export { DIAMOND_SLOT_TABLE };

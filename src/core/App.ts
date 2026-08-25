@@ -6,6 +6,7 @@ import {
   HemisphereLight,
   Mesh,
   MeshStandardMaterial,
+  PCFSoftShadowMap,
   PlaneGeometry,
   Scene,
   WebGLRenderer,
@@ -37,6 +38,8 @@ export class App {
     this.renderer = new WebGLRenderer({ canvas, antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = PCFSoftShadowMap;
 
     this.cameraRig = new FirstPersonCameraRig(canvas, window.innerWidth / window.innerHeight);
     this.registerUpdatable(this.cameraRig);
@@ -64,6 +67,17 @@ export class App {
 
     const sun = new DirectionalLight(0xffffff, 2.2);
     sun.position.set(150, 220, 100);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    // Sized to comfortably cover the formation's flying area (not the full 4000-unit ground
+    // plane — only the ground directly under the aircraft needs to receive a shadow).
+    sun.shadow.camera.left = -150;
+    sun.shadow.camera.right = 150;
+    sun.shadow.camera.top = 150;
+    sun.shadow.camera.bottom = -150;
+    sun.shadow.camera.near = 50;
+    sun.shadow.camera.far = 500;
+    sun.shadow.bias = -0.0005;
     this.scene.add(sun);
   }
 
@@ -72,6 +86,7 @@ export class App {
       new PlaneGeometry(4000, 4000),
       new MeshStandardMaterial({ color: GROUND_COLOR }),
     );
+    ground.receiveShadow = true;
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -80;
     this.scene.add(ground);

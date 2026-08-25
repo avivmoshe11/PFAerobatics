@@ -2,11 +2,11 @@ import { PerspectiveCamera, type Quaternion, Vector3 } from 'three';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 import type { Updatable } from './Updatable';
 
-const MOVE_SPEED = 16; // scene units per second — 0.4x the original 40 default
+const MOVE_SPEED = 8; // scene units per second — 0.4x the original 40 default
 const FAST_SPEED_MULTIPLIER = 4; // held with Shift
 const WORLD_UP = new Vector3(0, 1, 0);
-const INITIAL_POSITION = new Vector3(60, 35, 90);
-const INITIAL_LOOK_AT = new Vector3(0, -8, 0);
+const INITIAL_POSITION = new Vector3(0, 80, 55);
+const INITIAL_LOOK_AT = new Vector3(0, -6, 0);
 
 interface MoveState {
   forward: boolean;
@@ -23,9 +23,12 @@ const MOVE_KEYS: Record<string, keyof MoveState> = {
 };
 
 /**
- * FPS-style look: mouse movement rotates the camera in place via the browser's Pointer Lock API
- * (engaged by clicking the canvas, released with Esc — both browser-mandated, not overridable),
- * rather than orbiting the camera around a fixed target. W/S move along the exact direction the
+ * FPS-style look: mouse movement rotates the camera in place via the browser's Pointer Lock API,
+ * rather than orbiting the camera around a fixed target. Engaging/releasing the lock is driven
+ * externally (see main.ts — tied to the menu open/closed state and the first keypress, since
+ * browsers require an actual user gesture before they'll grant pointer lock, not something this
+ * class can do on its own on page load). Esc always releases it too (browser-mandated, not
+ * overridable). W/S move along the exact direction the
  * camera is currently looking (including pitch — look up and W climbs, look down and W dives),
  * like a free-fly/noclip camera rather than a level walk. A/D strafe stays level regardless of
  * look pitch, since PointerLockControls never introduces roll. Holding Shift moves faster.
@@ -55,7 +58,6 @@ export class FirstPersonCameraRig implements Updatable {
     this.camera.lookAt(INITIAL_LOOK_AT);
 
     this.controls = new PointerLockControls(this.camera, domElement);
-    domElement.addEventListener('click', () => this.controls.lock());
 
     this.initialPosition = this.camera.position.clone();
     this.initialQuaternion = this.camera.quaternion.clone();

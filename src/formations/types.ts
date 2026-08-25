@@ -14,10 +14,10 @@ export type Role =
   | 'lead'
   | 'wing-left'
   | 'wing-right'
-  | 'row2-left'
-  | 'row2-right'
   | 'slot'
   | 'tail'
+  | 'tail-left'
+  | 'tail-right'
   | 'echelon'
   | 'trail';
 
@@ -26,7 +26,7 @@ export interface Slot {
   readonly offset: Vec3;
 }
 
-export type FormationType = 'diamond' | 'echelon' | 'trail';
+export type FormationType = 'diamond' | 'echelon' | 'trail' | 'diamond-slot';
 
 export type EchelonDirection = 1 | -1;
 

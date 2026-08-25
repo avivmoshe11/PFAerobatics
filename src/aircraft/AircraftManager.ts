@@ -9,6 +9,7 @@ import { applyPoseToObject3D } from '../animation/applyPose';
 import type { AircraftTransition } from '../animation/FormationAnimator';
 import { FormationTransitionRunner } from '../animation/FormationAnimator';
 import type { AircraftLoader } from './AircraftLoader';
+import { createNumberSprite } from './NumberLabel';
 import type { Skin } from './SkinManager';
 import { applySkin } from './SkinManager';
 
@@ -33,6 +34,9 @@ const MODEL_FORWARD_YAW_CORRECTION_RAD = Math.PI / 2;
  */
 const PILOT_LOCAL_OFFSET = new Vector3(6.7, 2.6, 0);
 
+/** Local-space position of the floating number label, above the canopy. */
+const NUMBER_LABEL_LOCAL_OFFSET = new Vector3(0, 4, 0);
+
 /**
  * Owns the live aircraft Object3D instances and drives transitions between formations. Aircraft
  * identity `k` is always its Diamond home-slot index (see AircraftId), so returning to Diamond
@@ -49,7 +53,7 @@ export class AircraftManager implements Updatable {
   private pendingDirection: EchelonDirection = 1;
   private planeCount: number;
   private transitionDurationSeconds: number;
-  private currentSkin: Skin | null = null;
+  private currentSkins: readonly Skin[] | null = null;
 
   constructor(
     private readonly loader: AircraftLoader,
@@ -107,7 +111,15 @@ export class AircraftManager implements Updatable {
     for (const instance of this.instances) this.group.remove(instance);
 
     this.instances = Array.from({ length: planeCount }, () => this.loader.createInstance());
-    this.instances.forEach((instance) => this.group.add(instance));
+
+    const hotkeyOrder = this.pilotHotkeyOrder(); // hotkeyOrder[i] = the AircraftId shown as number i+1
+    this.instances.forEach((instance, aircraftId) => {
+      this.group.add(instance);
+      const humanNumber = hotkeyOrder.indexOf(aircraftId) + 1;
+      const label = createNumberSprite(humanNumber);
+      label.position.copy(NUMBER_LABEL_LOCAL_OFFSET);
+      instance.add(label);
+    });
 
     this.currentFormation = 'diamond';
     this.currentDirection = 1;
@@ -115,12 +127,21 @@ export class AircraftManager implements Updatable {
     this.pendingTarget = null;
     this.applyStaticFormation('diamond', 1);
 
-    if (this.currentSkin) void this.applySkinToAll(this.currentSkin);
+    if (this.currentSkins) void this.applySkins(this.currentSkins);
   }
 
-  async applySkinToAll(skin: Skin): Promise<void> {
-    this.currentSkin = skin;
-    await Promise.all(this.instances.map((instance) => applySkin(instance, skin)));
+  /**
+   * Assigns skins[aircraftId % skins.length] to each aircraft — a stable per-plane tail number
+   * (AircraftId is permanent, see the class doc comment) rather than every plane wearing the same
+   * livery, so pilots can tell planes apart at a glance. Cycles if there are fewer skins than planes.
+   */
+  async applySkins(skins: readonly Skin[]): Promise<void> {
+    this.currentSkins = skins;
+    await Promise.all(
+      this.instances.map((instance, aircraftId) =>
+        applySkin(instance, skins[aircraftId % skins.length]!),
+      ),
+    );
   }
 
   setTransitionDuration(seconds: number): void {

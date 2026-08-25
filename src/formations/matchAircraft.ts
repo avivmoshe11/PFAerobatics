@@ -30,6 +30,20 @@ export function computeDiamondBijection(
   const diamondSlots = generateDiamond({ planeCount });
   const targetSlots = generateFormationSlots(targetFormation, planeCount, echelonDirection);
 
+  if (targetFormation === 'diamond-slot') {
+    // diamond-slot reuses diamond's own roles (wing-left, wing-right, slot, tail, ...) in the same
+    // row order — it's the same shape, just tighter spacing — so aircraft should keep their diamond
+    // side/role rather than being re-sorted by the echelon/trail queueing rules below, which would
+    // swap wing-left and wing-right via the trail tie-break.
+    return diamondSlots.map((slot) => {
+      const targetIndex = targetSlots.findIndex((t) => t.role === slot.role);
+      if (targetIndex === -1) {
+        throw new Error(`diamond-slot formation is missing role "${slot.role}"`);
+      }
+      return targetIndex;
+    });
+  }
+
   const diamondLeadIndex = diamondSlots.findIndex((slot) => slot.role === 'lead');
   const targetLeadIndex = targetSlots.findIndex((slot) => slot.role === 'lead');
   if (diamondLeadIndex === -1 || targetLeadIndex === -1) {

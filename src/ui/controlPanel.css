@@ -67,20 +67,34 @@ body {
 }
 
 #control-panel {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 260px;
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6, 10, 18, 0.6);
+  z-index: 30;
+}
+
+#control-panel.open {
+  display: flex;
+}
+
+.modal-card {
+  position: relative;
+  width: 420px;
+  max-width: 90vw;
+  max-height: 85vh;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 16px;
-  border-radius: 10px;
-  background: rgba(15, 22, 36, 0.82);
-  backdrop-filter: blur(6px);
+  padding: 22px;
+  border-radius: 12px;
+  background: rgba(15, 22, 36, 0.95);
+  backdrop-filter: blur(8px);
   color: #e6ecf5;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-  z-index: 10;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
 }
 
 .panel-section {
@@ -139,6 +153,19 @@ button:hover:not(:disabled) {
   background: #24365a;
 }
 
+.modal-close-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  line-height: 1;
+  border-radius: 50%;
+  font-size: 13px;
+}
+
 button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
@@ -181,4 +208,15 @@ select {
 
 #pointer-lock-hint.hidden {
   opacity: 0;
+}
+
+#menu-hint {
+  position: absolute;
+  bottom: 12px;
+  right: 16px;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: rgba(230, 236, 245, 0.55);
+  pointer-events: none;
+  z-index: 15;
 }

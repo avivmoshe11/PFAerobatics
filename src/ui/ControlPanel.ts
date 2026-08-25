@@ -1,4 +1,3 @@
-import type { Skin } from '../aircraft/SkinManager';
 import { MAX_PLANES, MIN_PLANES } from '../formations/types';
 import type { EchelonDirection, FormationType } from '../formations/types';
 
@@ -7,40 +6,63 @@ export interface ControlPanelState {
   readonly echelonDirection: EchelonDirection;
   readonly planeCount: number;
   readonly transitioning: boolean;
-  readonly skins: readonly Skin[];
-  readonly activeSkinId: string | null;
   readonly transitionDurationSeconds: number;
 }
 
 export interface ControlPanelCallbacks {
   readonly onPlaneCountChange: (count: number) => void;
   readonly onTransitionRequest: (target: FormationType, echelonDirection: EchelonDirection) => void;
-  readonly onSkinChange: (skinId: string) => void;
   readonly onDurationChange: (seconds: number) => void;
   readonly onResetView: () => void;
+  /** Fired whenever setOpen() actually changes state — from any trigger (M key, the close
+   * button, or clicking the backdrop), so callers have one place to react (e.g. pointer lock). */
+  readonly onOpenChange: (open: boolean) => void;
 }
 
 const FORMATION_LABELS: Record<FormationType, string> = {
   diamond: 'Diamond',
   echelon: 'Echelon',
   trail: 'Trail',
+  'diamond-slot': 'Diamond Slot',
 };
 
 export class ControlPanel {
   constructor(
     private readonly root: HTMLElement,
     private readonly callbacks: ControlPanelCallbacks,
-  ) {}
+  ) {
+    // Click the backdrop (not the card itself) to close, like any standard modal.
+    this.root.addEventListener('click', (event) => {
+      if (event.target === this.root) this.setOpen(false);
+    });
+  }
+
+  get isOpen(): boolean {
+    return this.root.classList.contains('open');
+  }
+
+  /**
+   * `notify=false` closes/opens without firing onOpenChange — for Esc specifically, which should
+   * close the menu but never re-engage pointer lock the way every other close path does.
+   */
+  setOpen(open: boolean, notify = true): void {
+    if (open === this.isOpen) return;
+    this.root.classList.toggle('open', open);
+    if (notify) this.callbacks.onOpenChange(open);
+  }
 
   render(state: ControlPanelState): void {
-    this.root.replaceChildren(
+    const card = document.createElement('div');
+    card.className = 'modal-card';
+    card.append(
+      this.buildCloseButton(),
       this.buildHeading(state),
       this.buildPlaneCountControl(state),
       this.buildFormationButtons(state),
-      this.buildSkinPicker(state),
       this.buildDurationControl(state),
       this.buildViewControl(),
     );
+    this.root.replaceChildren(card);
   }
 
   private buildHeading(state: ControlPanelState): HTMLElement {
@@ -115,6 +137,9 @@ export class ControlPanel {
               this.callbacks.onTransitionRequest('echelon', 1),
             ),
             this.makeButton('Trail', () => this.callbacks.onTransitionRequest('trail', 1)),
+            this.makeButton('Diamond Slot', () =>
+              this.callbacks.onTransitionRequest('diamond-slot', 1),
+            ),
           ]
         : [
             this.makeButton('Return to Diamond', () =>
@@ -130,30 +155,6 @@ export class ControlPanel {
     return section;
   }
 
-  private buildSkinPicker(state: ControlPanelState): HTMLElement {
-    const section = document.createElement('div');
-    section.className = 'panel-section';
-    if (state.skins.length === 0) return section;
-
-    const label = document.createElement('label');
-    label.htmlFor = 'skin-select';
-    label.textContent = 'Skin';
-
-    const select = document.createElement('select');
-    select.id = 'skin-select';
-    for (const skin of state.skins) {
-      const option = document.createElement('option');
-      option.value = skin.id;
-      option.textContent = skin.label;
-      option.selected = skin.id === state.activeSkinId;
-      select.append(option);
-    }
-    select.addEventListener('change', () => this.callbacks.onSkinChange(select.value));
-
-    section.append(label, select);
-    return section;
-  }
-
   private buildViewControl(): HTMLElement {
     const section = document.createElement('div');
     section.className = 'panel-section';
@@ -161,10 +162,8 @@ export class ControlPanel {
     const hint = document.createElement('p');
     hint.className = 'hint';
     hint.textContent =
-      'WASD to fly (follows look direction) · Shift for speed · click canvas to look · Esc to release · 1-6 hop to a cockpit';
+      'WASD to fly (follows look direction) · Shift for speed · any key looks around · Esc to release · 1-6 hop to a cockpit · R reset view · T diamond · M toggles this menu';
     section.append(hint);
-
-    section.append(this.makeButton('Reset View', () => this.callbacks.onResetView()));
 
     return section;
   }
@@ -190,6 +189,16 @@ export class ControlPanel {
 
     section.append(label, input);
     return section;
+  }
+
+  private buildCloseButton(): HTMLButtonElement {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'modal-close-button';
+    button.textContent = '✕';
+    button.setAttribute('aria-label', 'Close menu');
+    button.addEventListener('click', () => this.setOpen(false));
+    return button;
   }
 
   private makeButton(label: string, onClick: () => void): HTMLButtonElement {

@@ -4,7 +4,7 @@ import { generateDiamond } from '../../src/formations/diamond';
 import type { EchelonDirection, FormationType } from '../../src/formations/types';
 import { MAX_PLANES, MIN_PLANES } from '../../src/formations/types';
 
-const NON_DIAMOND: Exclude<FormationType, 'diamond'>[] = ['echelon', 'trail'];
+const NON_DIAMOND: Exclude<FormationType, 'diamond'>[] = ['echelon', 'trail', 'diamond-slot'];
 const DIRECTIONS: EchelonDirection[] = [1, -1];
 
 function isValidPermutation(bijection: number[], n: number): boolean {
@@ -85,7 +85,7 @@ describe('computeDiamondBijection', () => {
           .map(({ i }) => i);
         const trailingIndices = diamondSlots
           .map((s, i) => ({ role: s.role, i }))
-          .filter(({ role }) => role === 'slot' || role === 'tail' || role.startsWith('row2'))
+          .filter(({ role }) => role === 'slot' || role.startsWith('tail'))
           .map(({ i }) => i);
         const bijection = computeDiamondBijection('echelon', n, direction);
         const maxWingTarget = Math.max(...wingIndices.map((i) => bijection[i]!));
