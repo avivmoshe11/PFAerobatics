@@ -17,8 +17,8 @@ const LEAD: RowSpec = { depthBehind: 0, verticalDrop: 0, slots: [{ lateral: 0, r
 
 // Base spacing units (scene units, roughly meters). Tuned by eye against the aircraft model,
 // not derived from a formula — real formation spacing is a matter of visual judgment.
-const LAT = 13;
-const DEPTH = 10.8;
+const LAT = 12.7;
+const DEPTH = 10.5;
 const VERT = 1.4;
 
 /**

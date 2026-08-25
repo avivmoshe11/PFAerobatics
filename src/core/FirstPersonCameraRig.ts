@@ -3,7 +3,7 @@ import { PointerLockControls } from 'three/addons/controls/PointerLockControls.j
 import type { Updatable } from './Updatable';
 
 const MOVE_SPEED = 8; // scene units per second — 0.4x the original 40 default
-const FAST_SPEED_MULTIPLIER = 4; // held with Shift
+const FAST_SPEED_MULTIPLIER = 8; // held with Shift
 const WORLD_UP = new Vector3(0, 1, 0);
 const INITIAL_POSITION = new Vector3(0, 80, 55);
 const INITIAL_LOOK_AT = new Vector3(0, -6, 0);
